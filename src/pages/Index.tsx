@@ -1,8 +1,11 @@
-import { Shield, FileText, Scale, Phone, ChevronRight, Users, Award, Clock } from "lucide-react";
+import { Shield, FileText, Scale, Phone, ChevronRight, Users, Award, Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -16,14 +19,23 @@ const Index = () => {
             <Link to="/fir-report" className="hover:text-foreground transition-colors">FIR Report</Link>
             <Link to="/lawyers" className="hover:text-foreground transition-colors">Find Lawyer</Link>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">Login</Link>
-            </Button>
-            <Button size="sm" className="gradient-cyber text-primary-foreground font-semibold" asChild>
-              <Link to="/signup">Sign Up</Link>
-            </Button>
-          </div>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-1" /> Logout
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button size="sm" className="gradient-cyber text-primary-foreground font-semibold" asChild>
+                <Link to="/signup">Sign Up</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </nav>
 
