@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          base_amount: number
+          created_at: string
+          currency: string
+          duration_minutes: number
+          id: string
+          lawyer_id: string
+          platform_fee: number
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_amount: number
+          created_at?: string
+          currency?: string
+          duration_minutes: number
+          id?: string
+          lawyer_id: string
+          platform_fee: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          duration_minutes?: number
+          id?: string
+          lawyer_id?: string
+          platform_fee?: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyers: {
         Row: {
           bar_council_id: string
@@ -63,7 +119,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lawyers_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       profiles: {
         Row: {

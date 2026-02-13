@@ -119,7 +119,7 @@ const Lawyers = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("lawyers")
-      .select("*, profile:profiles!lawyers_user_id_fkey(full_name, avatar_url)");
+      .select("*, profile:profiles!lawyers_user_id_profiles_fkey(full_name, avatar_url)");
 
     if (!error && data) {
       setLawyers(data.map((l: any) => ({ ...l, profile: l.profile?.[0] || l.profile })));
