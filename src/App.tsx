@@ -9,6 +9,7 @@ import FirReport from "./pages/FirReport";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Lawyers from "./pages/Lawyers";
+import LawyerProfile from "./pages/LawyerProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/lawyers" element={<Lawyers />} />
+            <Route path="/lawyers/:id" element={<LawyerProfile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
