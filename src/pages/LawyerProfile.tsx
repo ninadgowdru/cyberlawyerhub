@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Shield, MapPin, Star, IndianRupee, Scale, ArrowLeft, Briefcase, CheckCircle, LogOut, Clock } from "lucide-react";
+import { Shield, MapPin, Star, IndianRupee, Scale, ArrowLeft, Briefcase, CheckCircle, LogOut, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface LawyerData {
   id: string;
@@ -27,8 +28,11 @@ interface LawyerData {
 const LawyerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const [lawyer, setLawyer] = useState<LawyerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDuration, setSelectedDuration] = useState<30 | 60>(30);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   useEffect(() => {
     if (id) fetchLawyer();
@@ -38,7 +42,7 @@ const LawyerProfile = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("lawyers")
-      .select("*, profile:profiles!lawyers_user_id_fkey(full_name, avatar_url)")
+      .select("*, profile:profiles!lawyers_user_id_profiles_fkey(full_name, avatar_url)")
       .eq("id", id!)
       .maybeSingle();
 
@@ -203,7 +207,14 @@ const LawyerProfile = () => {
             <div className="glass-card p-6 sticky top-24">
               <h2 className="text-lg font-semibold mb-4">Book Consultation</h2>
               <div className="space-y-3 mb-5">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <button
+                  onClick={() => setSelectedDuration(30)}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors border ${
+                    selectedDuration === 30
+                      ? "border-primary bg-primary/10"
+                      : "border-border/30 bg-muted/50 hover:border-border"
+                  }`}
+                >
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>30 minutes</span>
@@ -211,8 +222,15 @@ const LawyerProfile = () => {
                   <span className="font-semibold flex items-center gap-0.5">
                     <IndianRupee className="h-3.5 w-3.5" />{halfHourRate}
                   </span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                </button>
+                <button
+                  onClick={() => setSelectedDuration(60)}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors border ${
+                    selectedDuration === 60
+                      ? "border-primary bg-primary/10"
+                      : "border-border/30 bg-muted/50 hover:border-border"
+                  }`}
+                >
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>60 minutes</span>
@@ -220,14 +238,62 @@ const LawyerProfile = () => {
                   <span className="font-semibold flex items-center gap-0.5">
                     <IndianRupee className="h-3.5 w-3.5" />{lawyer.hourly_rate}
                   </span>
-                </div>
+                </button>
               </div>
-              <p className="text-[11px] text-muted-foreground mb-4">
-                Prices shown exclude 25% platform fee.
-              </p>
-              <Separator className="mb-4" />
-              <Button className="w-full gradient-cyber text-primary-foreground font-semibold" size="lg">
-                Book Consultation
+
+              {/* Price breakdown */}
+              {(() => {
+                const base = selectedDuration === 30 ? halfHourRate : lawyer.hourly_rate;
+                const fee = Math.round(base * 0.25);
+                return (
+                  <div className="text-sm space-y-1 mb-4">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Base ({selectedDuration} min)</span>
+                      <span>₹{base}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Platform fee (25%)</span>
+                      <span>₹{fee}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-semibold text-foreground">
+                      <span>Total</span>
+                      <span>₹{base + fee}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <Button
+                className="w-full gradient-cyber text-primary-foreground font-semibold"
+                size="lg"
+                disabled={!user || bookingLoading}
+                onClick={async () => {
+                  setBookingLoading(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("create-checkout", {
+                      body: { lawyer_id: lawyer.id, duration_minutes: selectedDuration },
+                    });
+                    if (error) throw error;
+                    if (data?.url) {
+                      window.open(data.url, "_blank");
+                    }
+                  } catch (err: any) {
+                    toast({
+                      title: "Booking failed",
+                      description: err.message || "Something went wrong. Please try again.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setBookingLoading(false);
+                  }
+                }}
+              >
+                {bookingLoading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
+                ) : (
+                  "Book Consultation"
+                )}
               </Button>
               {!user && (
                 <p className="text-xs text-muted-foreground text-center mt-3">
