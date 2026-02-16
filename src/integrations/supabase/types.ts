@@ -23,6 +23,7 @@ export type Database = {
           id: string
           lawyer_id: string
           platform_fee: number
+          start_time: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -38,6 +39,7 @@ export type Database = {
           id?: string
           lawyer_id: string
           platform_fee: number
+          start_time?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -53,6 +55,7 @@ export type Database = {
           id?: string
           lawyer_id?: string
           platform_fee?: number
+          start_time?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -63,6 +66,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bookings_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lawyer_availability: {
+        Row: {
+          created_at: string
+          date: string
+          end_time: string
+          id: string
+          is_booked: boolean
+          lawyer_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          end_time: string
+          id?: string
+          is_booked?: boolean
+          lawyer_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          end_time?: string
+          id?: string
+          is_booked?: boolean
+          lawyer_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_availability_lawyer_id_fkey"
             columns: ["lawyer_id"]
             isOneToOne: false
             referencedRelation: "lawyers"

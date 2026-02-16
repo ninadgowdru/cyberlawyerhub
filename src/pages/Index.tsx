@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  const { user, userRole, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -21,7 +21,9 @@ const Index = () => {
           </div>
           {user ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to={userRole === "lawyer" ? "/lawyer/dashboard" : "/dashboard"}>Dashboard</Link>
+              </Button>
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4 mr-1" /> Logout
               </Button>
