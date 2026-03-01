@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 const CITIES = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Hyderabad", "Pune", "Kolkata"];
 const SPECIALIZATIONS = ["UPI Fraud", "Phishing", "Banking Fraud", "Investment Scam", "Aadhaar Fraud", "Identity Theft", "Ransomware"];
 
+const ADMIN_SECRET_CODE = "CYBER2026ADMIN";
+
 const Signup = () => {
   const [mode, setMode] = useState<"user" | "lawyer">("user");
   const [email, setEmail] = useState("");
@@ -19,6 +21,8 @@ const Signup = () => {
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [adminCode, setAdminCode] = useState("");
+  const [showAdminField, setShowAdminField] = useState(false);
 
   // Lawyer-specific
   const [barCouncilId, setBarCouncilId] = useState("");
@@ -41,6 +45,11 @@ const Signup = () => {
       toast({ title: "Bar Council ID is required", variant: "destructive" });
       return;
     }
+    if (showAdminField && adminCode !== ADMIN_SECRET_CODE) {
+      toast({ title: "Invalid admin code", variant: "destructive" });
+      return;
+    }
+    const effectiveRole = showAdminField && adminCode === ADMIN_SECRET_CODE ? "admin" : mode;
     setLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
@@ -72,7 +81,7 @@ const Signup = () => {
     }
 
     // Insert role
-    await supabase.from("user_roles").insert({ user_id: userId, role: mode });
+    await supabase.from("user_roles").insert({ user_id: userId, role: effectiveRole } as any);
 
     // If lawyer, create lawyer profile
     if (mode === "lawyer") {
@@ -288,12 +297,34 @@ const Signup = () => {
             </Button>
           </form>
 
+          {/* Admin secret code field */}
+          {showAdminField && (
+            <div className="space-y-2 glass-card p-4">
+              <Label htmlFor="adminCode">Admin Secret Code</Label>
+              <Input
+                id="adminCode"
+                type="password"
+                placeholder="Enter admin secret code"
+                value={adminCode}
+                onChange={(e) => setAdminCode(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link to="/login" className="text-primary hover:underline font-medium">
               Sign In
             </Link>
           </p>
+          <button
+            type="button"
+            onClick={() => setShowAdminField(!showAdminField)}
+            className="w-full text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          >
+            {showAdminField ? "Hide admin signup" : "Admin signup"}
+          </button>
         </div>
       </div>
     </div>

@@ -73,6 +73,45 @@ export type Database = {
           },
         ]
       }
+      fir_reports: {
+        Row: {
+          created_at: string
+          description: string
+          evidence_urls: string[] | null
+          fraud_amount: number | null
+          id: string
+          incident_type: string
+          status: string
+          suspect_details: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          evidence_urls?: string[] | null
+          fraud_amount?: number | null
+          id?: string
+          incident_type: string
+          status?: string
+          suspect_details?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          evidence_urls?: string[] | null
+          fraud_amount?: number | null
+          id?: string
+          incident_type?: string
+          status?: string
+          suspect_details?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lawyer_availability: {
         Row: {
           created_at: string
