@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Shield, LogOut, FileText, Scale, CalendarDays, LayoutDashboard, IndianRupee, Clock } from "lucide-react";
+import { Shield, LogOut, FileText, Scale, CalendarDays, LayoutDashboard, IndianRupee, Clock, Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,10 +23,14 @@ const lawyerLinks = [
   { to: "/lawyer/dashboard/earnings", label: "Earnings", icon: IndianRupee },
 ];
 
+const adminLinks = [
+  { to: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
+];
+
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, userRole, signOut } = useAuth();
   const location = useLocation();
-  const links = userRole === "lawyer" ? lawyerLinks : userLinks;
+  const links = userRole === "admin" ? adminLinks : userRole === "lawyer" ? lawyerLinks : userLinks;
 
   return (
     <div className="min-h-screen bg-background">

@@ -22,7 +22,7 @@ const Index = () => {
           {user ? (
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" asChild>
-                <Link to={userRole === "lawyer" ? "/lawyer/dashboard" : "/dashboard"}>Dashboard</Link>
+                <Link to={userRole === "admin" ? "/admin/dashboard" : userRole === "lawyer" ? "/lawyer/dashboard" : "/dashboard"}>Dashboard</Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4 mr-1" /> Logout

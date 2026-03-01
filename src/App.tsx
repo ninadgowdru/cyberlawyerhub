@@ -13,6 +13,7 @@ import LawyerProfile from "./pages/LawyerProfile";
 import BookingSuccess from "./pages/BookingSuccess";
 import UserDashboard from "./pages/UserDashboard";
 import LawyerDashboard from "./pages/LawyerDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/lawyer/dashboard/bookings" element={<LawyerDashboard />} />
             <Route path="/lawyer/dashboard/availability" element={<LawyerDashboard />} />
             <Route path="/lawyer/dashboard/earnings" element={<LawyerDashboard />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
