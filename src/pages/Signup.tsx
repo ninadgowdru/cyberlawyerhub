@@ -52,12 +52,23 @@ const Signup = () => {
     const effectiveRole = showAdminField && adminCode === ADMIN_SECRET_CODE ? "admin" : mode;
     setLoading(true);
 
+    // Pass role in metadata so the trigger auto-creates it
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName },
+        data: {
+          full_name: fullName,
+          role: effectiveRole,
+          phone: phone || undefined,
+          ...(mode === "lawyer" ? {
+            bar_council_id: barCouncilId,
+            city,
+            hourly_rate: parseInt(hourlyRate),
+            specializations: selectedSpecs,
+          } : {}),
+        },
       },
     });
 
@@ -73,25 +84,6 @@ const Signup = () => {
       toast({ title: "Please check your email to confirm your account." });
       navigate("/login");
       return;
-    }
-
-    // Update profile with phone
-    if (phone) {
-      await supabase.from("profiles").update({ phone, full_name: fullName }).eq("user_id", userId);
-    }
-
-    // Insert role
-    await supabase.from("user_roles").insert({ user_id: userId, role: effectiveRole } as any);
-
-    // If lawyer, create lawyer profile
-    if (mode === "lawyer") {
-      await supabase.from("lawyers").insert({
-        user_id: userId,
-        bar_council_id: barCouncilId,
-        city,
-        hourly_rate: parseInt(hourlyRate),
-        specializations: selectedSpecs,
-      });
     }
 
     setLoading(false);
