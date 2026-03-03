@@ -30,12 +30,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setUserRole((data?.role as UserRole) ?? null);
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      setUserRole((data?.role as UserRole) ?? null);
+    } catch {
+      setUserRole(null);
+    }
   };
 
   useEffect(() => {
