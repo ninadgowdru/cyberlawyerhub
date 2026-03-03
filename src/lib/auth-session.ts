@@ -11,12 +11,8 @@ export const clearAuthStorage = () => {
 };
 
 export const clearLocalAuthSession = async (client: SupabaseClient) => {
-  try {
-    await client.auth.signOut({ scope: "local" });
-  } catch {
-    // Ignore - we'll still clear local storage keys below.
-  }
-
+  // Do not block on signOut network behavior; clear local state immediately.
+  void client.auth.signOut({ scope: "local" }).catch(() => {});
   clearAuthStorage();
 };
 
