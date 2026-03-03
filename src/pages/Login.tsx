@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { clearLocalAuthSession } from "@/lib/auth-session";
+import { clearLocalAuthSession, withTimeout } from "@/lib/auth-session";
 
 const Login = () => {
   const [email, setEmail] = useState("");
