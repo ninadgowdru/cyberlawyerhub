@@ -102,7 +102,7 @@ const LawyerCard = ({ lawyer }: { lawyer: Lawyer }) => {
 };
 
 const Lawyers = () => {
-  const { user, signOut } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
