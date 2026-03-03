@@ -21,7 +21,14 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const attemptLogin = () => supabase.auth.signInWithPassword({ email, password });
+      await clearLocalAuthSession(supabase);
+
+      const attemptLogin = () => Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Login timeout. Please try again.")), 10000)
+        ),
+      ]);
 
       let { error } = await attemptLogin();
 
@@ -54,6 +61,9 @@ const Login = () => {
       if (role === "admin") navigate("/admin/dashboard");
       else if (role === "lawyer") navigate("/lawyer/dashboard");
       else navigate("/dashboard");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to sign in right now.";
+      toast({ title: "Login failed", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
