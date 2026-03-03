@@ -56,10 +56,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
         console.warn("Session fetch failed, clearing stale session:", error.message);
-        supabase.auth.signOut().catch(() => {});
+        await clearLocalAuthSession(supabase);
         setSession(null);
         setUser(null);
         setUserRole(null);
@@ -69,10 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        await fetchRole(session.user.id);
       }
       setLoading(false);
-    }).catch(() => {
+    }).catch(async () => {
+      await clearLocalAuthSession(supabase);
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
       setLoading(false);
     });
 
