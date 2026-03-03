@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { clearLocalAuthSession, withTimeout } from "@/lib/auth-session";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -18,22 +19,52 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
-    } else {
+
+    try {
+      await clearLocalAuthSession(supabase);
+
+      const attemptLogin = () =>
+        withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          10000,
+          "Login timeout. Please try again."
+        );
+
+      let { data, error } = await attemptLogin();
+
+      if (error?.message?.toLowerCase().includes("failed to fetch")) {
+        await clearLocalAuthSession(supabase);
+        ({ data, error } = await attemptLogin());
+      }
+
+      if (error) {
+        toast({ title: "Login failed", description: error.message, variant: "destructive" });
+        return;
+      }
+
       toast({ title: "Welcome back!" });
-      // Fetch role to redirect to correct dashboard
+      // Use the authenticated user from sign-in response directly (avoid extra auth round-trip)
+      const userId = data.user?.id;
+
+      if (!userId) {
+        navigate("/dashboard");
+        return;
+      }
+
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .eq("user_id", userId)
         .maybeSingle();
       const role = roleData?.role;
       if (role === "admin") navigate("/admin/dashboard");
       else if (role === "lawyer") navigate("/lawyer/dashboard");
       else navigate("/dashboard");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to sign in right now.";
+      toast({ title: "Login failed", description: message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 

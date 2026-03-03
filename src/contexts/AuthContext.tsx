@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { clearLocalAuthSession, withTimeout } from "@/lib/auth-session";
 
 type UserRole = "user" | "lawyer" | "admin";
 
@@ -29,12 +30,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setUserRole((data?.role as UserRole) ?? null);
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      setUserRole((data?.role as UserRole) ?? null);
+    } catch {
+      setUserRole(null);
+    }
   };
 
   useEffect(() => {
@@ -51,31 +56,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.warn("Session fetch failed, clearing stale session:", error.message);
-        supabase.auth.signOut().catch(() => {});
+    const initializeSession = async () => {
+      try {
+        const sessionResult = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          "Auth session initialization timeout"
+        );
+
+        const { data: { session }, error } = sessionResult;
+
+        if (error) {
+          throw error;
+        }
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchRole(session.user.id);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.warn("Session fetch failed, clearing stale session:", error);
+        await clearLocalAuthSession(supabase);
         setSession(null);
         setUser(null);
         setUserRole(null);
         setLoading(false);
-        return;
       }
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id);
-      }
-      setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
+    };
+
+    void initializeSession();
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await clearLocalAuthSession(supabase);
     setUser(null);
     setSession(null);
     setUserRole(null);
