@@ -30,11 +30,11 @@ const Login = () => {
           "Login timeout. Please try again."
         );
 
-      let { error } = await attemptLogin();
+      let { data, error } = await attemptLogin();
 
       if (error?.message?.toLowerCase().includes("failed to fetch")) {
         await clearLocalAuthSession(supabase);
-        ({ error } = await attemptLogin());
+        ({ data, error } = await attemptLogin());
       }
 
       if (error) {
@@ -43,9 +43,8 @@ const Login = () => {
       }
 
       toast({ title: "Welcome back!" });
-      // Fetch role to redirect to correct dashboard
-      const { data: currentUser } = await supabase.auth.getUser();
-      const userId = currentUser.user?.id;
+      // Use the authenticated user from sign-in response directly (avoid extra auth round-trip)
+      const userId = data.user?.id;
 
       if (!userId) {
         navigate("/dashboard");
