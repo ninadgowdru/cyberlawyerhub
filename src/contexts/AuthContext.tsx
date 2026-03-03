@@ -56,29 +56,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error) {
-        console.warn("Session fetch failed, clearing stale session:", error.message);
+    const initializeSession = async () => {
+      try {
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Auth session initialization timeout")), 8000)
+          ),
+        ]);
+
+        const { data: { session }, error } = sessionResult;
+
+        if (error) {
+          throw error;
+        }
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchRole(session.user.id);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.warn("Session fetch failed, clearing stale session:", error);
         await clearLocalAuthSession(supabase);
         setSession(null);
         setUser(null);
         setUserRole(null);
         setLoading(false);
-        return;
       }
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchRole(session.user.id);
-      }
-      setLoading(false);
-    }).catch(async () => {
-      await clearLocalAuthSession(supabase);
-      setSession(null);
-      setUser(null);
-      setUserRole(null);
-      setLoading(false);
-    });
+    };
+
+    void initializeSession();
 
     return () => subscription.unsubscribe();
   }, []);
