@@ -58,12 +58,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initializeSession = async () => {
       try {
-        const sessionResult = await Promise.race([
+        const sessionResult = await withTimeout(
           supabase.auth.getSession(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Auth session initialization timeout")), 8000)
-          ),
-        ]);
+          8000,
+          "Auth session initialization timeout"
+        );
 
         const { data: { session }, error } = sessionResult;
 

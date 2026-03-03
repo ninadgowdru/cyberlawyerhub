@@ -23,12 +23,12 @@ const Login = () => {
     try {
       await clearLocalAuthSession(supabase);
 
-      const attemptLogin = () => Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Login timeout. Please try again.")), 10000)
-        ),
-      ]);
+      const attemptLogin = () =>
+        withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          10000,
+          "Login timeout. Please try again."
+        );
 
       let { error } = await attemptLogin();
 
