@@ -51,12 +51,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn("Session fetch failed, clearing stale session:", error.message);
+        supabase.auth.signOut().catch(() => {});
+        setSession(null);
+        setUser(null);
+        setUserRole(null);
+        setLoading(false);
+        return;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchRole(session.user.id);
       }
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
