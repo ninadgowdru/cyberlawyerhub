@@ -24,7 +24,16 @@ const Login = () => {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Welcome back!" });
-      navigate("/");
+      // Fetch role to redirect to correct dashboard
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .maybeSingle();
+      const role = roleData?.role;
+      if (role === "admin") navigate("/admin/dashboard");
+      else if (role === "lawyer") navigate("/lawyer/dashboard");
+      else navigate("/dashboard");
     }
   };
 
