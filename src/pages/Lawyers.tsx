@@ -292,6 +292,13 @@ const Lawyers = () => {
               </div>
             ))}
           </div>
+        ) : fetchError ? (
+          <div className="text-center py-20">
+            <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Couldn’t load lawyers</h3>
+            <p className="text-muted-foreground text-sm mb-4">{fetchError}</p>
+            <Button variant="outline" onClick={fetchLawyers}>Try again</Button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

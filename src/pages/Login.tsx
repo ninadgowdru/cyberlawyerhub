@@ -21,12 +21,10 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await clearLocalAuthSession(supabase);
-
       const attemptLogin = () =>
         withTimeout(
-          supabase.auth.signInWithPassword({ email, password }),
-          10000,
+          supabase.auth.signInWithPassword({ email: email.trim(), password }),
+          15000,
           "Login timeout. Please try again."
         );
 
