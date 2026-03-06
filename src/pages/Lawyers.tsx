@@ -143,7 +143,7 @@ const Lawyers = () => {
 
   const filtered = lawyers.filter((l) => {
     const name = l.profile?.full_name?.toLowerCase() || "";
-    const specs = l.specializations.join(" ").toLowerCase();
+    const specs = (l.specializations ?? []).join(" ").toLowerCase();
     const q = search.toLowerCase();
     const matchesSearch = !q || name.includes(q) || specs.includes(q);
     const matchesCity = cityFilter === "All Cities" || l.city === cityFilter;
