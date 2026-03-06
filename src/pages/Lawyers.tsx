@@ -105,6 +105,7 @@ const Lawyers = () => {
   const { user, userRole, signOut } = useAuth();
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("All Cities");
   const [rateRange, setRateRange] = useState([500, 4000]);
@@ -117,19 +118,32 @@ const Lawyers = () => {
 
   const fetchLawyers = async () => {
     setLoading(true);
+    setFetchError(null);
+
     const { data, error } = await supabase
       .from("lawyers")
       .select("*, profile:profiles!lawyers_user_id_profiles_fkey(full_name, avatar_url)");
 
-    if (!error && data) {
-      setLawyers(data.map((l: any) => ({ ...l, profile: l.profile?.[0] || l.profile })));
+    if (error) {
+      setFetchError(error.message);
+      setLawyers([]);
+      setLoading(false);
+      return;
     }
+
+    const normalized = (data ?? []).map((l: any) => ({
+      ...l,
+      specializations: Array.isArray(l.specializations) ? l.specializations : [],
+      profile: Array.isArray(l.profile) ? l.profile[0] : l.profile,
+    }));
+
+    setLawyers(normalized);
     setLoading(false);
   };
 
   const filtered = lawyers.filter((l) => {
     const name = l.profile?.full_name?.toLowerCase() || "";
-    const specs = l.specializations.join(" ").toLowerCase();
+    const specs = (l.specializations ?? []).join(" ").toLowerCase();
     const q = search.toLowerCase();
     const matchesSearch = !q || name.includes(q) || specs.includes(q);
     const matchesCity = cityFilter === "All Cities" || l.city === cityFilter;
@@ -277,6 +291,13 @@ const Lawyers = () => {
                 </div>
               </div>
             ))}
+          </div>
+        ) : fetchError ? (
+          <div className="text-center py-20">
+            <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Couldn’t load lawyers</h3>
+            <p className="text-muted-foreground text-sm mb-4">{fetchError}</p>
+            <Button variant="outline" onClick={fetchLawyers}>Try again</Button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
