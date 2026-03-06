@@ -105,6 +105,7 @@ const Lawyers = () => {
   const { user, userRole, signOut } = useAuth();
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("All Cities");
   const [rateRange, setRateRange] = useState([500, 4000]);
@@ -117,13 +118,26 @@ const Lawyers = () => {
 
   const fetchLawyers = async () => {
     setLoading(true);
+    setFetchError(null);
+
     const { data, error } = await supabase
       .from("lawyers")
       .select("*, profile:profiles!lawyers_user_id_profiles_fkey(full_name, avatar_url)");
 
-    if (!error && data) {
-      setLawyers(data.map((l: any) => ({ ...l, profile: l.profile?.[0] || l.profile })));
+    if (error) {
+      setFetchError(error.message);
+      setLawyers([]);
+      setLoading(false);
+      return;
     }
+
+    const normalized = (data ?? []).map((l: any) => ({
+      ...l,
+      specializations: Array.isArray(l.specializations) ? l.specializations : [],
+      profile: Array.isArray(l.profile) ? l.profile[0] : l.profile,
+    }));
+
+    setLawyers(normalized);
     setLoading(false);
   };
 
