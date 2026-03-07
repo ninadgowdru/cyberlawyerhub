@@ -54,7 +54,49 @@ const Login = () => {
         .select("role")
         .eq("user_id", userId)
         .maybeSingle();
-      const role = roleData?.role;
+
+      let role = roleData?.role;
+
+      // Fallback: if no role record exists, check user metadata and create missing records
+      if (!role) {
+        const metaRole = data.user?.user_metadata?.role;
+        if (metaRole === "lawyer" || metaRole === "admin" || metaRole === "user") {
+          // Insert missing role
+          await supabase.from("user_roles").insert({ user_id: userId, role: metaRole });
+          // Insert missing profile
+          const { data: existingProfile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!existingProfile) {
+            await supabase.from("profiles").insert({
+              user_id: userId,
+              full_name: data.user?.user_metadata?.full_name || "",
+              phone: data.user?.user_metadata?.phone || null,
+            });
+          }
+          // Insert missing lawyer record
+          if (metaRole === "lawyer") {
+            const { data: existingLawyer } = await supabase
+              .from("lawyers")
+              .select("id")
+              .eq("user_id", userId)
+              .maybeSingle();
+            if (!existingLawyer) {
+              await supabase.from("lawyers").insert({
+                user_id: userId,
+                bar_council_id: data.user?.user_metadata?.bar_council_id || "",
+                city: data.user?.user_metadata?.city || "Delhi",
+                hourly_rate: data.user?.user_metadata?.hourly_rate || 1000,
+                specializations: data.user?.user_metadata?.specializations || [],
+              });
+            }
+          }
+          role = metaRole;
+        }
+      }
+
       if (role === "admin") navigate("/admin/dashboard");
       else if (role === "lawyer") navigate("/lawyer/dashboard");
       else navigate("/dashboard");
