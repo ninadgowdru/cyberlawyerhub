@@ -24,15 +24,11 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && (!user || userRole !== "admin")) {
-      navigate("/");
-    }
+    if (!authLoading && (!user || userRole !== "admin")) navigate("/");
   }, [user, userRole, authLoading, navigate]);
 
   useEffect(() => {
-    if (user && userRole === "admin") {
-      fetchAllData();
-    }
+    if (user && userRole === "admin") fetchAllData();
   }, [user, userRole]);
 
   const fetchAllData = async () => {
@@ -70,12 +66,9 @@ const AdminDashboard = () => {
     fetchAllData();
   };
 
-  const getRoleForUser = (userId: string) => {
-    return roles.find((r) => r.user_id === userId)?.role || "user";
-  };
+  const getRoleForUser = (userId: string) => roles.find((r) => r.user_id === userId)?.role || "user";
 
-  // Analytics
-  const totalRevenue = bookings.filter(b => b.status === "paid").reduce((sum, b) => sum + b.total_amount, 0);
+  const totalRevenue = bookings.filter(b => b.status === "paid" || b.status === "confirmed").reduce((sum, b) => sum + b.total_amount, 0);
   const totalBookings = bookings.length;
   const totalUsers = profiles.length;
   const totalLawyers = lawyers.length;
@@ -97,19 +90,17 @@ const AdminDashboard = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            Admin Dashboard
+            <Shield className="h-8 w-8 text-primary" /> Admin Dashboard
           </h1>
           <p className="text-muted-foreground">Manage users, lawyers, bookings, and FIR reports.</p>
         </div>
 
-        {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
             { label: "Total Users", value: totalUsers, icon: Users },
             { label: "Lawyers", value: totalLawyers, icon: Users },
             { label: "Verified", value: verifiedLawyers, icon: CheckCircle },
-            { label: "Bookings", value: totalBookings, icon: CalendarDays },
+            { label: "Cases", value: totalBookings, icon: CalendarDays },
             { label: "Revenue", value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee },
             { label: "Pending FIRs", value: pendingFirs, icon: FileText },
           ].map((stat) => (
@@ -126,17 +117,14 @@ const AdminDashboard = () => {
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
-            <TabsTrigger value="bookings"><CalendarDays className="h-4 w-4 mr-1" /> Bookings</TabsTrigger>
+            <TabsTrigger value="bookings"><CalendarDays className="h-4 w-4 mr-1" /> Cases</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1" /> Analytics</TabsTrigger>
             <TabsTrigger value="fir"><FileText className="h-4 w-4 mr-1" /> FIR Reports</TabsTrigger>
           </TabsList>
 
-          {/* Users & Lawyers Tab */}
           <TabsContent value="users" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>All Users ({profiles.length})</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>All Users ({profiles.length})</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -157,9 +145,7 @@ const AdminDashboard = () => {
                             {getRoleForUser(p.user_id)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {new Date(p.created_at).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{new Date(p.created_at).toLocaleDateString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -168,16 +154,14 @@ const AdminDashboard = () => {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Lawyers ({lawyers.length})</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Lawyers ({lawyers.length})</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Bar Council ID</TableHead>
                       <TableHead>City</TableHead>
-                      <TableHead>Rate</TableHead>
+                      <TableHead>Case Fee</TableHead>
                       <TableHead>Rating</TableHead>
                       <TableHead>Verified</TableHead>
                       <TableHead>Action</TableHead>
@@ -188,7 +172,7 @@ const AdminDashboard = () => {
                       <TableRow key={l.id}>
                         <TableCell className="font-medium">{l.bar_council_id}</TableCell>
                         <TableCell>{l.city}</TableCell>
-                        <TableCell>₹{l.hourly_rate}/hr</TableCell>
+                        <TableCell>₹{l.hourly_rate}</TableCell>
                         <TableCell>{l.rating ?? "—"}</TableCell>
                         <TableCell>
                           {l.is_verified ? (
@@ -198,13 +182,8 @@ const AdminDashboard = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant={l.is_verified ? "destructive" : "default"}
-                            onClick={() => toggleLawyerVerification(l.id, l.is_verified)}
-                          >
-                            {l.is_verified ? <XCircle className="h-3 w-3 mr-1" /> : <CheckCircle className="h-3 w-3 mr-1" />}
-                            {l.is_verified ? "Revoke" : "Verify"}
+                          <Button size="sm" variant={l.is_verified ? "destructive" : "default"} onClick={() => toggleLawyerVerification(l.id, l.is_verified)}>
+                            {l.is_verified ? <><XCircle className="h-3 w-3 mr-1" /> Revoke</> : <><CheckCircle className="h-3 w-3 mr-1" /> Verify</>}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -215,19 +194,16 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Bookings Tab */}
           <TabsContent value="bookings">
             <Card>
-              <CardHeader>
-                <CardTitle>All Bookings ({bookings.length})</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>All Cases ({bookings.length})</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID</TableHead>
-                      <TableHead>Duration</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Payment Ref</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Actions</TableHead>
@@ -237,25 +213,19 @@ const AdminDashboard = () => {
                     {bookings.map((b) => (
                       <TableRow key={b.id}>
                         <TableCell className="font-mono text-xs">{b.id.slice(0, 8)}...</TableCell>
-                        <TableCell>{b.duration_minutes} min</TableCell>
                         <TableCell>₹{b.total_amount}</TableCell>
+                        <TableCell className="font-mono text-xs">{b.payment_reference_id || "—"}</TableCell>
                         <TableCell>
-                          <Badge variant={b.status === "paid" ? "default" : b.status === "cancelled" ? "destructive" : "secondary"}>
-                            {b.status}
+                          <Badge variant={b.status === "confirmed" ? "default" : b.status === "cancelled" || b.status === "rejected" ? "destructive" : "secondary"}>
+                            {b.status.replace("_", " ")}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {new Date(b.created_at).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{new Date(b.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="space-x-1">
-                          {b.status === "pending" && (
+                          {(b.status === "pending" || b.status === "pending_verification") && (
                             <>
-                              <Button size="sm" variant="default" onClick={() => updateBookingStatus(b.id, "paid")}>
-                                Mark Paid
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => updateBookingStatus(b.id, "cancelled")}>
-                                Cancel
-                              </Button>
+                              <Button size="sm" variant="default" onClick={() => updateBookingStatus(b.id, "confirmed")}>Confirm</Button>
+                              <Button size="sm" variant="destructive" onClick={() => updateBookingStatus(b.id, "cancelled")}>Cancel</Button>
                             </>
                           )}
                         </TableCell>
@@ -263,7 +233,7 @@ const AdminDashboard = () => {
                     ))}
                     {bookings.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No bookings yet</TableCell>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No cases yet</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
@@ -272,84 +242,51 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Analytics Tab */}
           <TabsContent value="analytics">
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Revenue Breakdown</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Revenue Breakdown</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Revenue</span>
                     <span className="font-bold text-lg">₹{totalRevenue.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Platform Fees Earned</span>
+                    <span className="text-muted-foreground">Platform Fees</span>
                     <span className="font-bold">
-                      ₹{bookings.filter(b => b.status === "paid").reduce((s, b) => s + b.platform_fee, 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Avg Booking Value</span>
-                    <span className="font-bold">
-                      ₹{totalBookings > 0 ? Math.round(totalRevenue / bookings.filter(b => b.status === "paid").length || 1).toLocaleString() : 0}
+                      ₹{bookings.filter(b => b.status === "paid" || b.status === "confirmed").reduce((s, b) => s + b.platform_fee, 0).toLocaleString()}
                     </span>
                   </div>
                 </CardContent>
               </Card>
-
               <Card>
-                <CardHeader>
-                  <CardTitle>Platform Stats</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Platform Stats</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Users</span>
-                    <span className="font-bold">{totalUsers}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Verified Lawyers</span>
-                    <span className="font-bold">{verifiedLawyers} / {totalLawyers}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Pending FIR Reports</span>
-                    <span className="font-bold">{pendingFirs}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Paid Bookings</span>
-                    <span className="font-bold">{bookings.filter(b => b.status === "paid").length}</span>
-                  </div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total Users</span><span className="font-bold">{totalUsers}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Verified Lawyers</span><span className="font-bold">{verifiedLawyers} / {totalLawyers}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Pending FIRs</span><span className="font-bold">{pendingFirs}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Confirmed Cases</span><span className="font-bold">{bookings.filter(b => b.status === "confirmed").length}</span></div>
                 </CardContent>
               </Card>
-
               <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Bookings by Status</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Cases by Status</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {["pending", "paid", "confirmed", "cancelled"].map((status) => {
-                      const count = bookings.filter(b => b.status === status).length;
-                      return (
-                        <div key={status} className="text-center p-4 rounded-lg bg-muted/30">
-                          <p className="text-2xl font-bold">{count}</p>
-                          <p className="text-sm text-muted-foreground capitalize">{status}</p>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {["pending_verification", "pending", "confirmed", "rejected", "cancelled"].map((status) => (
+                      <div key={status} className="text-center p-4 rounded-lg bg-muted/30">
+                        <p className="text-2xl font-bold">{bookings.filter(b => b.status === status).length}</p>
+                        <p className="text-sm text-muted-foreground capitalize">{status.replace("_", " ")}</p>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
-          {/* FIR Reports Tab */}
           <TabsContent value="fir">
             <Card>
-              <CardHeader>
-                <CardTitle>FIR Reports ({firReports.length})</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>FIR Reports ({firReports.length})</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -367,31 +304,21 @@ const AdminDashboard = () => {
                         <TableCell className="font-medium">{fir.incident_type}</TableCell>
                         <TableCell>{fir.fraud_amount ? `₹${fir.fraud_amount.toLocaleString()}` : "—"}</TableCell>
                         <TableCell>
-                          <Badge variant={fir.status === "reviewed" ? "default" : fir.status === "rejected" ? "destructive" : "secondary"}>
-                            {fir.status}
-                          </Badge>
+                          <Badge variant={fir.status === "reviewed" ? "default" : fir.status === "rejected" ? "destructive" : "secondary"}>{fir.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {new Date(fir.created_at).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{new Date(fir.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="space-x-1">
                           {fir.status === "submitted" && (
                             <>
-                              <Button size="sm" onClick={() => updateFirStatus(fir.id, "reviewed")}>
-                                <CheckCircle className="h-3 w-3 mr-1" /> Approve
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => updateFirStatus(fir.id, "rejected")}>
-                                <XCircle className="h-3 w-3 mr-1" /> Reject
-                              </Button>
+                              <Button size="sm" onClick={() => updateFirStatus(fir.id, "reviewed")}><CheckCircle className="h-3 w-3 mr-1" /> Approve</Button>
+                              <Button size="sm" variant="destructive" onClick={() => updateFirStatus(fir.id, "rejected")}><XCircle className="h-3 w-3 mr-1" /> Reject</Button>
                             </>
                           )}
                         </TableCell>
                       </TableRow>
                     ))}
                     {firReports.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">No FIR reports submitted yet</TableCell>
-                      </TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No FIR reports yet</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>

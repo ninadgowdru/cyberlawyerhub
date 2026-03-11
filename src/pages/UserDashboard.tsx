@@ -11,26 +11,26 @@ import { format } from "date-fns";
 
 interface Booking {
   id: string;
-  duration_minutes: number;
   total_amount: number;
   status: string;
   created_at: string;
-  start_time: string | null;
+  case_description: string | null;
+  payment_reference_id: string | null;
   lawyers: {
     id: string;
     city: string;
     hourly_rate: number;
-    profiles: {
-      full_name: string;
-    };
+    profiles: { full_name: string };
   };
 }
 
 const statusColor: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  pending_verification: "bg-orange-500/20 text-orange-400 border-orange-500/30",
   paid: "bg-green-500/20 text-green-400 border-green-500/30",
   confirmed: "bg-primary/20 text-primary border-primary/30",
   cancelled: "bg-destructive/20 text-destructive border-destructive/30",
+  rejected: "bg-destructive/20 text-destructive border-destructive/30",
 };
 
 const UserDashboard = () => {
@@ -53,7 +53,7 @@ const UserDashboard = () => {
   }, [user]);
 
   const totalSpent = bookings.filter(b => b.status === "paid" || b.status === "confirmed").reduce((s, b) => s + b.total_amount, 0);
-  const upcomingCount = bookings.filter(b => b.status === "confirmed" || b.status === "paid").length;
+  const pendingCount = bookings.filter(b => b.status === "pending_verification").length;
 
   return (
     <DashboardLayout>
@@ -63,12 +63,11 @@ const UserDashboard = () => {
           <p className="text-muted-foreground mt-1">Welcome back! Here's your activity summary.</p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Bookings", value: bookings.length, icon: CalendarDays },
-            { label: "Upcoming", value: upcomingCount, icon: Clock },
-            { label: "Total Spent", value: `₹${(totalSpent / 100).toLocaleString("en-IN")}`, icon: IndianRupee },
+            { label: "Total Cases", value: bookings.length, icon: CalendarDays },
+            { label: "Pending", value: pendingCount, icon: Clock },
+            { label: "Total Spent", value: `₹${totalSpent.toLocaleString("en-IN")}`, icon: IndianRupee },
             { label: "FIRs Generated", value: "—", icon: FileText },
           ].map((stat) => (
             <Card key={stat.label} className="glass-card">
@@ -85,7 +84,6 @@ const UserDashboard = () => {
           ))}
         </div>
 
-        {/* Quick Actions */}
         <div className="flex flex-wrap gap-3">
           <Button className="gradient-cyber text-primary-foreground font-semibold" asChild>
             <Link to="/fir-report"><FileText className="h-4 w-4 mr-2" /> New FIR Report</Link>
@@ -95,11 +93,8 @@ const UserDashboard = () => {
           </Button>
         </div>
 
-        {/* Recent Bookings */}
         <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Bookings</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">Recent Cases</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
               <p className="text-muted-foreground text-sm">Loading...</p>
@@ -108,7 +103,7 @@ const UserDashboard = () => {
                 <CalendarDays className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
                 <p className="text-muted-foreground">No bookings yet.</p>
                 <Button variant="link" className="text-primary mt-2" asChild>
-                  <Link to="/lawyers">Browse lawyers to book a consultation</Link>
+                  <Link to="/lawyers">Browse lawyers to book a case</Link>
                 </Button>
               </div>
             ) : (
@@ -117,15 +112,18 @@ const UserDashboard = () => {
                   <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">
-                        {b.lawyers?.profiles?.full_name ?? "Lawyer"}
+                        {(b.lawyers as any)?.profiles?.full_name ?? "Lawyer"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {b.duration_minutes} min • {b.lawyers?.city} • {format(new Date(b.created_at), "dd MMM yyyy")}
+                        {(b.lawyers as any)?.city} • {format(new Date(b.created_at), "dd MMM yyyy")}
                       </p>
+                      {b.case_description && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{b.case_description}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold">₹{(b.total_amount / 100).toLocaleString("en-IN")}</span>
-                      <Badge variant="outline" className={statusColor[b.status] ?? ""}>{b.status}</Badge>
+                      <span className="text-sm font-semibold">₹{b.total_amount.toLocaleString("en-IN")}</span>
+                      <Badge variant="outline" className={statusColor[b.status] ?? ""}>{b.status.replace("_", " ")}</Badge>
                     </div>
                   </div>
                 ))}
