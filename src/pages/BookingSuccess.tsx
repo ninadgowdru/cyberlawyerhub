@@ -15,16 +15,16 @@ const BookingSuccess = () => (
     <div className="container mx-auto px-4 pt-32 pb-16 max-w-lg text-center">
       <div className="glass-card p-10">
         <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Booking Confirmed!</h1>
+        <h1 className="text-2xl font-bold mb-2">Case Booking Submitted!</h1>
         <p className="text-muted-foreground mb-6">
-          Your consultation has been booked. You'll receive a confirmation email with session details shortly.
+          Your case booking has been submitted. The lawyer will verify your payment and confirm the booking shortly.
         </p>
         <div className="flex gap-3 justify-center">
           <Button asChild variant="outline">
             <Link to="/lawyers">Browse More Lawyers</Link>
           </Button>
           <Button asChild className="gradient-cyber text-primary-foreground font-semibold">
-            <Link to="/">Go Home</Link>
+            <Link to="/dashboard">Go to Dashboard</Link>
           </Button>
         </div>
       </div>

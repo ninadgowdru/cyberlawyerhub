@@ -29,6 +29,7 @@ const Signup = () => {
   const [city, setCity] = useState("Delhi");
   const [hourlyRate, setHourlyRate] = useState("1500");
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
+  const [upiId, setUpiId] = useState("");
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,7 +53,6 @@ const Signup = () => {
     const effectiveRole = showAdminField && adminCode === ADMIN_SECRET_CODE ? "admin" : mode;
     setLoading(true);
 
-    // Pass role in metadata so the trigger auto-creates it
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -67,6 +67,7 @@ const Signup = () => {
             city,
             hourly_rate: parseInt(hourlyRate),
             specializations: selectedSpecs,
+            upi_id: upiId || undefined,
           } : {}),
         },
       },
@@ -78,17 +79,18 @@ const Signup = () => {
       return;
     }
 
-    const userId = data.user?.id;
-    if (!userId) {
-      setLoading(false);
-      toast({ title: "Please check your email to confirm your account." });
-      navigate("/login");
-      return;
-    }
-
     setLoading(false);
-    toast({ title: "Account created!", description: "Please check your email to verify your account." });
-    navigate("/login");
+
+    // Auto-confirm is enabled, so user is immediately logged in
+    if (data.session) {
+      toast({ title: "Account created!" });
+      if (effectiveRole === "admin") navigate("/admin/dashboard");
+      else if (effectiveRole === "lawyer") navigate("/lawyer/dashboard");
+      else navigate("/dashboard");
+    } else {
+      toast({ title: "Account created!", description: "You can now sign in." });
+      navigate("/login");
+    }
   };
 
   const handleGoogleSignup = async () => {
@@ -163,62 +165,28 @@ const Signup = () => {
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                placeholder="Your full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
+              <Input id="fullName" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone (+91)</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="pl-10"
-                />
+                <Input id="phone" type="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Min 6 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                  minLength={6}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                >
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" minLength={6} required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -229,38 +197,24 @@ const Signup = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="barCouncilId">Bar Council ID</Label>
-                  <Input
-                    id="barCouncilId"
-                    placeholder="e.g. D/1234/2020"
-                    value={barCouncilId}
-                    onChange={(e) => setBarCouncilId(e.target.value)}
-                    required
-                  />
+                  <Input id="barCouncilId" placeholder="e.g. D/1234/2020" value={barCouncilId} onChange={(e) => setBarCouncilId(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Select value={city} onValueChange={setCity}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CITIES.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
+                      {CITIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="hourlyRate">Hourly Rate (₹)</Label>
-                  <Input
-                    id="hourlyRate"
-                    type="number"
-                    min={500}
-                    max={4000}
-                    value={hourlyRate}
-                    onChange={(e) => setHourlyRate(e.target.value)}
-                    required
-                  />
+                  <Label htmlFor="hourlyRate">Case Fee (₹)</Label>
+                  <Input id="hourlyRate" type="number" min={500} max={50000} value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="upiId">UPI ID (for payments)</Label>
+                  <Input id="upiId" placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Specializations</Label>
@@ -293,22 +247,13 @@ const Signup = () => {
           {showAdminField && (
             <div className="space-y-2 glass-card p-4">
               <Label htmlFor="adminCode">Admin Secret Code</Label>
-              <Input
-                id="adminCode"
-                type="password"
-                placeholder="Enter admin secret code"
-                value={adminCode}
-                onChange={(e) => setAdminCode(e.target.value)}
-                required
-              />
+              <Input id="adminCode" type="password" placeholder="Enter admin secret code" value={adminCode} onChange={(e) => setAdminCode(e.target.value)} required />
             </div>
           )}
 
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary hover:underline font-medium">
-              Sign In
-            </Link>
+            <Link to="/login" className="text-primary hover:underline font-medium">Sign In</Link>
           </p>
           <button
             type="button"

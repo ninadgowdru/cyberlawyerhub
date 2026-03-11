@@ -17,11 +17,13 @@ export type Database = {
       bookings: {
         Row: {
           base_amount: number
+          case_description: string | null
           created_at: string
           currency: string
           duration_minutes: number
           id: string
           lawyer_id: string
+          payment_reference_id: string | null
           platform_fee: number
           start_time: string | null
           status: string
@@ -33,11 +35,13 @@ export type Database = {
         }
         Insert: {
           base_amount: number
+          case_description?: string | null
           created_at?: string
           currency?: string
-          duration_minutes: number
+          duration_minutes?: number
           id?: string
           lawyer_id: string
+          payment_reference_id?: string | null
           platform_fee: number
           start_time?: string | null
           status?: string
@@ -49,11 +53,13 @@ export type Database = {
         }
         Update: {
           base_amount?: number
+          case_description?: string | null
           created_at?: string
           currency?: string
           duration_minutes?: number
           id?: string
           lawyer_id?: string
+          payment_reference_id?: string | null
           platform_fee?: number
           start_time?: string | null
           status?: string
@@ -165,6 +171,7 @@ export type Database = {
           review_count: number | null
           specializations: string[]
           updated_at: string
+          upi_id: string | null
           user_id: string
         }
         Insert: {
@@ -181,6 +188,7 @@ export type Database = {
           review_count?: number | null
           specializations?: string[]
           updated_at?: string
+          upi_id?: string | null
           user_id: string
         }
         Update: {
@@ -197,6 +205,7 @@ export type Database = {
           review_count?: number | null
           specializations?: string[]
           updated_at?: string
+          upi_id?: string | null
           user_id?: string
         }
         Relationships: [

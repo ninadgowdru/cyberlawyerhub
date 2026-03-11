@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Shield, MapPin, Star, IndianRupee, Scale, ArrowLeft, Briefcase, CheckCircle, LogOut, Clock, Loader2 } from "lucide-react";
+import { Shield, MapPin, Star, IndianRupee, Scale, ArrowLeft, Briefcase, CheckCircle, LogOut, Loader2, QrCode, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +25,7 @@ interface LawyerData {
   rating: number | null;
   review_count: number | null;
   is_verified: boolean | null;
+  upi_id: string | null;
   profile?: { full_name: string; avatar_url: string | null };
 }
 
@@ -31,8 +35,10 @@ const LawyerProfile = () => {
   const { toast } = useToast();
   const [lawyer, setLawyer] = useState<LawyerData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDuration, setSelectedDuration] = useState<30 | 60>(30);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [referenceId, setReferenceId] = useState("");
+  const [caseDescription, setCaseDescription] = useState("");
+  const [bookingSubmitted, setBookingSubmitted] = useState(false);
 
   useEffect(() => {
     if (id) fetchLawyer();
@@ -53,6 +59,46 @@ const LawyerProfile = () => {
     setLoading(false);
   };
 
+  const handleBookCase = async () => {
+    if (!user || !lawyer) return;
+    if (!referenceId.trim()) {
+      toast({ title: "Please enter payment reference ID", variant: "destructive" });
+      return;
+    }
+    if (!caseDescription.trim()) {
+      toast({ title: "Please describe your case", variant: "destructive" });
+      return;
+    }
+
+    setBookingLoading(true);
+    try {
+      const baseAmount = lawyer.hourly_rate;
+      const platformFee = Math.round(baseAmount * 0.25);
+      const totalAmount = baseAmount + platformFee;
+
+      const { error } = await supabase.from("bookings").insert({
+        user_id: user.id,
+        lawyer_id: lawyer.id,
+        duration_minutes: 0,
+        base_amount: baseAmount,
+        platform_fee: platformFee,
+        total_amount: totalAmount,
+        currency: "inr",
+        status: "pending_verification",
+        payment_reference_id: referenceId.trim(),
+        case_description: caseDescription.trim(),
+      });
+
+      if (error) throw error;
+      setBookingSubmitted(true);
+      toast({ title: "Booking submitted!", description: "The lawyer will verify your payment." });
+    } catch (err: any) {
+      toast({ title: "Booking failed", description: err.message, variant: "destructive" });
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   if (loading) return <LoadingSkeleton />;
 
   if (!lawyer) {
@@ -62,9 +108,7 @@ const LawyerProfile = () => {
           <Scale className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Lawyer not found</h2>
           <p className="text-muted-foreground mb-6">This profile may have been removed.</p>
-          <Button asChild>
-            <Link to="/lawyers">Browse Lawyers</Link>
-          </Button>
+          <Button asChild><Link to="/lawyers">Browse Lawyers</Link></Button>
         </div>
       </div>
     );
@@ -75,7 +119,13 @@ const LawyerProfile = () => {
   const reviewCount = lawyer.review_count || 0;
   const photoUrl = lawyer.photo_url || lawyer.profile?.avatar_url;
   const experience = lawyer.experience_years || 0;
-  const halfHourRate = Math.round(lawyer.hourly_rate / 2);
+  const baseAmount = lawyer.hourly_rate;
+  const platformFee = Math.round(baseAmount * 0.25);
+  const totalAmount = baseAmount + platformFee;
+  const upiId = lawyer.upi_id || "lawyer@upi";
+
+  // Generate UPI QR URL
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${totalAmount}&cu=INR`)}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,9 +143,7 @@ const LawyerProfile = () => {
           {user ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-1" /> Logout
-              </Button>
+              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-1" /> Logout</Button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -109,7 +157,6 @@ const LawyerProfile = () => {
       </nav>
 
       <div className="container mx-auto px-4 pt-24 pb-16 max-w-4xl">
-        {/* Back link */}
         <Link to="/lawyers" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back to directory
         </Link>
@@ -127,9 +174,7 @@ const LawyerProfile = () => {
             <div className="flex-1 text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
                 <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-                {lawyer.is_verified && (
-                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                )}
+                {lawyer.is_verified && <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />}
               </div>
               <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-muted-foreground mb-3">
                 <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{lawyer.city}</span>
@@ -138,10 +183,7 @@ const LawyerProfile = () => {
               <div className="flex items-center justify-center sm:justify-start gap-3">
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      className={`h-4 w-4 ${s <= Math.round(rating) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/30"}`}
-                    />
+                    <Star key={s} className={`h-4 w-4 ${s <= Math.round(rating) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/30"}`} />
                   ))}
                   <span className="ml-1 text-sm font-medium">{rating.toFixed(1)}</span>
                 </div>
@@ -154,50 +196,29 @@ const LawyerProfile = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left column */}
           <div className="md:col-span-2 space-y-6">
-            {/* Bio */}
             <div className="glass-card p-6">
               <h2 className="text-lg font-semibold mb-3">About</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                {lawyer.bio || "This lawyer has not added a bio yet."}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{lawyer.bio || "This lawyer has not added a bio yet."}</p>
             </div>
-
-            {/* Specializations */}
             <div className="glass-card p-6">
               <h2 className="text-lg font-semibold mb-3">Specializations</h2>
               {lawyer.specializations.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {lawyer.specializations.map((spec) => (
-                    <Badge key={spec} variant="secondary" className="px-3 py-1 bg-secondary/50">
-                      {spec}
-                    </Badge>
+                    <Badge key={spec} variant="secondary" className="px-3 py-1 bg-secondary/50">{spec}</Badge>
                   ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">No specializations listed.</p>
               )}
             </div>
-
-            {/* Details */}
             <div className="glass-card p-6">
               <h2 className="text-lg font-semibold mb-3">Details</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Bar Council ID</span>
-                  <p className="font-medium mt-0.5">{lawyer.bar_council_id}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Experience</span>
-                  <p className="font-medium mt-0.5">{experience} years</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">City</span>
-                  <p className="font-medium mt-0.5">{lawyer.city}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Verification</span>
-                  <p className="font-medium mt-0.5">{lawyer.is_verified ? "Verified ✓" : "Pending"}</p>
-                </div>
+                <div><span className="text-muted-foreground">Bar Council ID</span><p className="font-medium mt-0.5">{lawyer.bar_council_id}</p></div>
+                <div><span className="text-muted-foreground">Experience</span><p className="font-medium mt-0.5">{experience} years</p></div>
+                <div><span className="text-muted-foreground">City</span><p className="font-medium mt-0.5">{lawyer.city}</p></div>
+                <div><span className="text-muted-foreground">Verification</span><p className="font-medium mt-0.5">{lawyer.is_verified ? "Verified ✓" : "Pending"}</p></div>
               </div>
             </div>
           </div>
@@ -205,100 +226,87 @@ const LawyerProfile = () => {
           {/* Right column — Booking card */}
           <div className="space-y-6">
             <div className="glass-card p-6 sticky top-24">
-              <h2 className="text-lg font-semibold mb-4">Book Consultation</h2>
-              <div className="space-y-3 mb-5">
-                <button
-                  onClick={() => setSelectedDuration(30)}
-                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors border ${
-                    selectedDuration === 30
-                      ? "border-primary bg-primary/10"
-                      : "border-border/30 bg-muted/50 hover:border-border"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>30 minutes</span>
-                  </div>
-                  <span className="font-semibold flex items-center gap-0.5">
-                    <IndianRupee className="h-3.5 w-3.5" />{halfHourRate}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setSelectedDuration(60)}
-                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors border ${
-                    selectedDuration === 60
-                      ? "border-primary bg-primary/10"
-                      : "border-border/30 bg-muted/50 hover:border-border"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>60 minutes</span>
-                  </div>
-                  <span className="font-semibold flex items-center gap-0.5">
-                    <IndianRupee className="h-3.5 w-3.5" />{lawyer.hourly_rate}
-                  </span>
-                </button>
-              </div>
+              <h2 className="text-lg font-semibold mb-4">Book Full Case</h2>
 
-              {/* Price breakdown */}
-              {(() => {
-                const base = selectedDuration === 30 ? halfHourRate : lawyer.hourly_rate;
-                const fee = Math.round(base * 0.25);
-                return (
+              {bookingSubmitted ? (
+                <div className="text-center py-4">
+                  <CheckCircle className="h-12 w-12 text-primary mx-auto mb-3" />
+                  <p className="font-semibold mb-1">Booking Submitted!</p>
+                  <p className="text-sm text-muted-foreground">The lawyer will verify your payment and confirm the booking.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => { setBookingSubmitted(false); setReferenceId(""); setCaseDescription(""); }}>
+                    Book Another Case
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* Price breakdown */}
                   <div className="text-sm space-y-1 mb-4">
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Base ({selectedDuration} min)</span>
-                      <span>₹{base}</span>
+                      <span>Case Fee</span>
+                      <span>₹{baseAmount}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Platform fee (25%)</span>
-                      <span>₹{fee}</span>
+                      <span>₹{platformFee}</span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between font-semibold text-foreground">
                       <span>Total</span>
-                      <span>₹{base + fee}</span>
+                      <span>₹{totalAmount}</span>
                     </div>
                   </div>
-                );
-              })()}
 
-              <Button
-                className="w-full gradient-cyber text-primary-foreground font-semibold"
-                size="lg"
-                disabled={!user || bookingLoading}
-                onClick={async () => {
-                  setBookingLoading(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke("create-checkout", {
-                      body: { lawyer_id: lawyer.id, duration_minutes: selectedDuration },
-                    });
-                    if (error) throw error;
-                    if (data?.url) {
-                      window.open(data.url, "_blank");
-                    }
-                  } catch (err: any) {
-                    toast({
-                      title: "Booking failed",
-                      description: err.message || "Something went wrong. Please try again.",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setBookingLoading(false);
-                  }
-                }}
-              >
-                {bookingLoading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
-                ) : (
-                  "Book Consultation"
-                )}
-              </Button>
-              {!user && (
-                <p className="text-xs text-muted-foreground text-center mt-3">
-                  <Link to="/login" className="text-primary hover:underline">Log in</Link> to book a consultation.
-                </p>
+                  {/* QR Code */}
+                  <div className="text-center mb-4">
+                    <p className="text-sm text-muted-foreground mb-2">Scan to pay via UPI</p>
+                    <div className="inline-block p-3 bg-white rounded-xl">
+                      <img src={qrUrl} alt="UPI QR Code" className="w-48 h-48" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">UPI ID: <span className="font-mono font-medium text-foreground">{upiId}</span></p>
+                  </div>
+
+                  {/* Case description */}
+                  <div className="space-y-2 mb-3">
+                    <Label htmlFor="caseDesc">Describe Your Case</Label>
+                    <Textarea
+                      id="caseDesc"
+                      placeholder="Brief description of your legal issue..."
+                      value={caseDescription}
+                      onChange={(e) => setCaseDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Reference ID */}
+                  <div className="space-y-2 mb-4">
+                    <Label htmlFor="refId">Payment Reference ID</Label>
+                    <Input
+                      id="refId"
+                      placeholder="Enter UPI transaction reference ID"
+                      value={referenceId}
+                      onChange={(e) => setReferenceId(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Enter the transaction ID after completing payment</p>
+                  </div>
+
+                  <Button
+                    className="w-full gradient-cyber text-primary-foreground font-semibold"
+                    size="lg"
+                    disabled={!user || bookingLoading}
+                    onClick={handleBookCase}
+                  >
+                    {bookingLoading ? (
+                      <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting...</>
+                    ) : (
+                      "Submit Booking"
+                    )}
+                  </Button>
+                  {!user && (
+                    <p className="text-xs text-muted-foreground text-center mt-3">
+                      <Link to="/login" className="text-primary hover:underline">Log in</Link> to book a case.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
