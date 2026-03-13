@@ -89,11 +89,15 @@ const LawyerProfile = () => {
         case_description: caseDescription.trim(),
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Booking insert error:", JSON.stringify(error));
+        throw error;
+      }
       setBookingSubmitted(true);
       toast({ title: "Booking submitted!", description: "The lawyer will verify your payment." });
     } catch (err: any) {
-      toast({ title: "Booking failed", description: err.message, variant: "destructive" });
+      console.error("Booking exception:", err);
+      toast({ title: "Booking failed", description: err.message || "Unknown error", variant: "destructive" });
     } finally {
       setBookingLoading(false);
     }
