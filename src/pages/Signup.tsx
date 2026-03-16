@@ -210,7 +210,7 @@ const Signup = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hourlyRate">Case Fee (₹)</Label>
-                  <Input id="hourlyRate" type="number" min={500} max={50000} value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} required />
+                  <Input id="hourlyRate" type="number" min={500} max={500000} value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="upiId">UPI ID (for payments)</Label>
